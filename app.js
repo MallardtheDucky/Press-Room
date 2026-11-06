@@ -429,9 +429,10 @@
     while (h.offsetWidth + (ban ? sz * 2.3 : 0) > avail && sz > 16) { sz -= 2; h.style.fontSize = sz + "px"; }
   }
 
+  var zoomed = false;
   function fitScale() {
     var ps = $("#paperScale");
-    var w = holder.clientWidth || PW, s = Math.min(1, w / PW);
+    var w = holder.clientWidth || PW, s = zoomed ? Math.min(1, Math.max(0.75, w / PW)) : Math.min(1, w / PW);
     ps.style.transform = "scale(" + s + ")";
     holder.style.height = Math.ceil(paperEl.offsetHeight * s) + "px";
   }
@@ -785,6 +786,52 @@
       } catch (err) { toast("That file is not a Press Room project."); }
     };
     fr.readAsText(f);
+  });
+
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function roman(n) {
+    var r = "";
+    [[50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]].forEach(function (x) { while (n >= x[0]) { r += x[1]; n -= x[0]; } });
+    return r;
+  }
+  function randomPaper() {
+    var old = S, town = pick(["Harbourton", "Stonebridge", "Millfield", "Ashford", "Brackenridge", "Westmere", "Larkhaven"]);
+    var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    var mo = Math.floor(Math.random() * 12), dd = 1 + Math.floor(Math.random() * 28), yr = 1860 + Math.floor(Math.random() * 40);
+    var m = Object.assign({}, old.m, {
+      title: "The " + pick(["Evening", "Morning", "Daily", "Weekly", "Harbour", "Valley", "Northern", "Royal", "Borough", "County", "Coastal", "Midland"]) + " " + pick(["Meridian", "Gazette", "Herald", "Courier", "Chronicle", "Sentinel", "Telegraph", "Bugle", "Standard", "Dispatch", "Observer", "Beacon"]),
+      tag: pick(["And Gazette of the Harbour Company", "The Paper of Record for the Valley", "Independent in All Things", "A Journal of News, Trade and Letters", "Devoted to Commerce, Letters and the Public Good"]),
+      date: town + ", " + pick(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]) + ", " + months[mo] + " " + dd + ", " + yr,
+      vol: "Volume " + roman(3 + Math.floor(Math.random() * 57)),
+      motto: pick(["The Voice of the Coast and Beyond", "Truth, Trade and Good Order", "First with the News of the Day", "For the People of the Valley", "Light in Every Household"]),
+      style: pick(["chron", "banner", "gothic", "classic"]), side: pick(["ears", "ears", "ears", "none"]),
+      eL: { l: "Weather", b: pick(["Fair & Cool", "Clear & Warm", "Rain Likely", "Fog at Dawn", "Brisk Winds"]), s: pick(["Glass steady at 30.10.", "Haze lifting over the hills.", "Clouds clearing by noon.", "Sea mist along the quay."]) },
+      eR: { l: pick(["Published daily", "Published weekly", "Printed every evening"]), b: pick(["One Penny", "Two Cents", "Three Cents", "Five Cents"]), s: pick(["By licence of the Charter.", "Subscriptions taken at the office.", "Sold by all newsagents."]) }
+    });
+    var next = Object.assign({}, old, { m: m, layout: pick(Object.keys(LAYOUTS)), paper: pick(["aged", "clean", "news", "dark"]), look: pick(["pencil", "photo"]),
+      space: pick(["tight", "normal", "normal", "roomy"]), rules: pick(["line", "line", "double", "none"]), pframe: pick(["double", "single"]), flip: Math.random() < 0.25,
+      fsize: "normal", sideW: 100, dropcap: Math.random() < 0.7, seed: 1 + Math.floor(Math.random() * 1000000) });
+    var lay = LAYOUTS[next.layout], cap = Object.keys(lay.zones).reduce(function (t, z) { return t + lay.zones[z].cap; }, 0);
+    var total = Math.max(4, cap - Math.floor(Math.random() * 3)), nBox = total >= 6 ? 2 : 1, list = [], i;
+    var pool = (window.FILLER || []).slice().sort(function () { return Math.random() - 0.5; });
+    for (i = 0; i < total - nBox && pool.length; i++) {
+      var f = pool.pop();
+      list.push(story({ head: f.h, body: i === 0 && pool.length > 2 ? [f.b, pool.pop().b, pool.pop().b].join("\n") : f.b, deck: i === 0 ? pick(["Emergency powers to stand until the Crown is heard", "Merchants and farmers await the result", "The council will sit again on Monday"]) : "", dateline: i % 2 === 0 ? town + ", " + months[mo].slice(0, 3) + ". " + dd + "." : "" }));
+    }
+    var boxes = [
+      story({ type: "box", label: "The famous", head: "Dr. Penrose's Bitters", body: "Restorer of the liver, the nerves and the spirits.\nSold at all stores.", foot: "One Dollar the Bottle", frame: "double" }),
+      story({ type: "box", label: town + ", Monday", head: "The Exchange", body: ["Wheat, per cental", "Flour, per barrel", "Coal, per ton", "Oranges, per box"].map(function (n) { return n + " | $" + (1 + Math.random() * 12).toFixed(2); }).join("\n"), frame: "solid" }),
+      story({ type: "box", label: "Notice", head: "Lost: One Umbrella", body: "Left at the tram stop on Monday. Please return to the office of this paper.", frame: "dotted" })
+    ].sort(function () { return Math.random() - 0.5; }).slice(0, nBox);
+    boxes.forEach(function (b, k) { list.splice(Math.min(list.length, 2 + 2 * k), 0, b); });
+    next.stories = list;
+    S = next; syncAll(); save();
+    toast("Made a new paper. Press again for another.", function () { S = old; syncAll(); save(); });
+  }
+  $("#btnRandom").addEventListener("click", randomPaper);
+  $("#btnZoom").addEventListener("click", function () {
+    zoomed = !zoomed; holder.classList.toggle("zoomed", zoomed);
+    this.textContent = zoomed ? "Fit to screen" : "Zoom preview"; this.setAttribute("aria-pressed", zoomed); fitScale();
   });
 
   drawList();

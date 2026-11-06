@@ -275,3 +275,27 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0}
 .card:not(.closed) .chev::before{content:"Close ▴"}
 .card.closed:hover{border-color:var(--accent)}
 .card summary{padding:8px 0;font-size:14px;color:var(--accent)}
+
+.zoom-btn{display:none}
+.zoomed{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.toast{bottom:calc(20px + env(safe-area-inset-bottom))}
+@media (max-width:640px){
+  .app{gap:14px}
+  .stage{display:flex;flex-direction:column}
+  .stage .bar{order:2;margin:12px 0 0}
+  .tips{margin-bottom:10px}
+  .zoom-btn{display:inline-flex}
+  .bar{flex-direction:column;align-items:stretch}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+  #btnExport,#btnZoom,#btnRandom{grid-column:1 / -1}
+  .chip{white-space:normal;text-align:center;font-size:12px}
+  .btn{min-height:44px}
+  .tab{padding:13px 2px;font-size:15px}
+  input[type=text],input:not([type]),input[type=number],select,textarea{font-size:16px;padding:10px}
+  .card-top{min-height:52px}
+  .card .tools .btn{min-height:40px;min-width:40px}
+  .panel{padding:12px}
+  .tips{font-size:13px;padding:8px 12px}
+  .lay{padding:10px}
+  .dlg{padding:8px}
+}
