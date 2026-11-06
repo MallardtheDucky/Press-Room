@@ -128,19 +128,22 @@
 
   var opened = {}; if (S.stories[0]) opened[S.stories[0].id] = true;
 
-  var saveT;
-  function save() {
-    clearTimeout(saveT);
-    saveT = setTimeout(function () {
-      try { localStorage.setItem(STORE, JSON.stringify(S)); }
-      catch (e) {
-        try {
-          var lite = JSON.parse(JSON.stringify(S)); lite.m.crest = null; lite.stories.forEach(function (s) { s.img = null; });
-          localStorage.setItem(STORE, JSON.stringify(lite));
-        } catch (e2) {  }
-      }
-    }, 400);
+  var saveT = 0;
+  function writeNow() {
+    saveT = 0;
+    try { localStorage.setItem(STORE, JSON.stringify(S)); }
+    catch (e) {
+      try {
+        var lite = JSON.parse(JSON.stringify(S)); lite.m.crest = null; lite.stories.forEach(function (s) { s.img = null; });
+        localStorage.setItem(STORE, JSON.stringify(lite));
+      } catch (e2) {  }
+    }
   }
+  function save() { clearTimeout(saveT); saveT = setTimeout(writeNow, 400); }
+  function flushSave() { if (saveT) { clearTimeout(saveT); writeNow(); } }
+  window.addEventListener("pagehide", flushSave);
+  window.addEventListener("beforeunload", flushSave);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) flushSave(); });
 
   function esc(t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function trunc(t, n) { t = String(t || "").trim(); if (t.length <= n) return t; return t.slice(0, n - 1).replace(/\s+\S*$/, "") + "…"; }
@@ -187,6 +190,33 @@
 
   function loadImg(src) { return new Promise(function (res, rej) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = rej; i.src = src; }); }
 
+  function adjOf(s) {
+    var z = Number(s.imgZoom), px = s.imgX === undefined ? 50 : Number(s.imgX), py = s.imgY === undefined ? 50 : Number(s.imgY);
+    return { fit: s.imgFit === "fit", zoom: z >= 100 ? Math.min(300, z) : 100, x: isNaN(px) ? 50 : px, y: isNaN(py) ? 50 : py, h: { short: 0.7, tall: 1.35 }[s.imgH] || 1 };
+  }
+  function adjKey(a) { return [a.fit ? 1 : 0, a.zoom, a.x, a.y, a.h].join(","); }
+  function drawAdj(x, img, W, H, a) {
+    x.fillStyle = "#ece2c8"; x.fillRect(0, 0, W, H);
+    var base = a.fit ? Math.min(W / img.width, H / img.height) : Math.max(W / img.width, H / img.height), sc = base * a.zoom / 100, dw = img.width * sc, dh = img.height * sc;
+    x.drawImage(img, (W - dw) * a.x / 100, (H - dh) * a.y / 100, dw, dh);
+  }
+  var imgMem = {};
+  function drawAdjPreview(card, s) {
+    var c = card.querySelector(".adj-prev"); if (!c || !s.img) return;
+    var go = function (img) { var a = adjOf(s); c.height = Math.round(190 * a.h); drawAdj(c.getContext("2d"), img, c.width, c.height, a); };
+    if (imgMem[s.imgId]) go(imgMem[s.imgId]); else loadImg(s.img).then(function (img) { imgMem[s.imgId] = img; go(img); });
+  }
+  function adjHTML(s) {
+    var a = adjOf(s), sel = function (v, cur, t) { return '<option value="' + v + '"' + (v === cur ? " selected" : "") + ">" + t + "</option>"; };
+    return '<div class="adj"><canvas class="adj-prev" width="280" height="' + Math.round(190 * a.h) + '"></canvas>' +
+      '<label class="field">Fit<select data-f="imgFit">' + sel("fill", a.fit ? "fit" : "fill", "Fill the space (crops the edges)") + sel("fit", a.fit ? "fit" : "fill", "Show the whole picture") + "</select></label>" +
+      '<label class="field">Zoom in <span class="opt" data-out="imgZoom">' + a.zoom + '%</span><input type="range" data-f="imgZoom" min="100" max="300" step="5" value="' + a.zoom + '"></label>' +
+      '<label class="field">Move left or right<input type="range" data-f="imgX" min="0" max="100" step="1" value="' + a.x + '"></label>' +
+      '<label class="field">Move up or down<input type="range" data-f="imgY" min="0" max="100" step="1" value="' + a.y + '"></label>' +
+      '<label class="field">Picture height<select data-f="imgH">' + sel("short", s.imgH || "normal", "Short") + sel("normal", s.imgH || "normal", "Normal") + sel("tall", s.imgH || "normal", "Tall") + "</select></label>" +
+      '<button type="button" class="btn" data-act="resetImg">Reset picture</button></div>';
+  }
+
   function blur(src, W, H, r) {
     var t = new Float32Array(src.length), o = new Float32Array(src.length), d = 2 * r + 1, x, y, sum, row;
     for (y = 0; y < H; y++) {
@@ -202,12 +232,11 @@
     return o;
   }
 
-  function stylise(src, look, W, H) {
+  function stylise(src, look, W, H, a) {
     return loadImg(src).then(function (img) {
       var c = document.createElement("canvas"); c.width = W; c.height = H;
       var x = c.getContext("2d", { willReadFrequently: true });
-      var sc = Math.max(W / img.width, H / img.height), dw = img.width * sc, dh = img.height * sc;
-      x.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      drawAdj(x, img, W, H, a);
       if (look === "original") return c.toDataURL("image/jpeg", 0.9);
       var d = x.getImageData(0, 0, W, H), px = d.data, n = W * H, g = new Float32Array(n), i, k, v, r = rng(W * 31 + H);
       for (i = 0; i < n; i++) g[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
@@ -259,20 +288,27 @@
     });
   }
 
-  var cache = {}, pending = {};
-  function styled(src, id, look, size) {
+  var cache = {}, pending = {}, lastGood = {}, cur = {};
+  function styled(src, id, look, size, a) {
     if (!src) return null;
-    var key = id + "|" + look + "|" + size[0];
+    var slot = id + "|" + size[0], key = slot + "|" + look + "|" + size[1] + "|" + adjKey(a);
+    cur[slot] = key;
     if (cache[key]) return cache[key];
     if (!pending[key]) {
       pending[key] = true;
-      stylise(src, look, size[0], size[1]).then(function (u) { cache[key] = u; delete pending[key]; render(); }, function () { delete pending[key]; });
+      stylise(src, look, size[0], size[1], a).then(function (u) {
+        Object.keys(cache).forEach(function (k) { if (k.indexOf(slot + "|") === 0) delete cache[k]; });
+        cache[key] = u; delete pending[key];
+        if (cur[slot] === key) lastGood[slot] = u;
+        render();
+      }, function () { delete pending[key]; });
     }
-    return null;
+    return lastGood[slot] || null;
   }
 
+  var noiseTile = null;
   (function noise() {
-    var c = document.createElement("canvas"); c.width = c.height = 240;
+    var c = document.createElement("canvas"); c.width = c.height = 240; noiseTile = c;
     var x = c.getContext("2d"), d = x.createImageData(240, 240), i, a;
     for (i = 0; i < d.data.length; i += 4) { a = Math.random(); d.data[i] = 90; d.data[i + 1] = 62; d.data[i + 2] = 30; d.data[i + 3] = a < 0.5 ? 0 : Math.round(a * 46); }
     x.putImageData(d, 0, 0);
@@ -329,7 +365,7 @@
       return '<aside class="' + cls + " box f-" + esc(s.frame) + '"' + idAttr + ">" + (s.label ? '<div class="b-label">' + esc(s.label) + "</div>" : "") +
         (s.head ? '<div class="b-title">' + esc(trunc(s.head, 40)) + "</div>" : "") + '<div class="b-body">' + lines + "</div>" + (s.foot ? '<div class="b-foot">' + esc(s.foot) + "</div>" : "") + "</aside>";
     }
-    var img = styled(s.img, s.imgId, S.look, IMGSIZE[kind]);
+    var a = adjOf(s), sz = IMGSIZE[kind], img = styled(s.img, s.imgId, S.look, [sz[0], Math.round(sz[1] * a.h)], a);
     var fig = img ? '<figure><div class="fr"><img src="' + img + '" alt=""></div>' + (s.caption ? "<figcaption>" + esc(trunc(s.caption, 110)) + "</figcaption>" : "") + "</figure>" : "";
     var below = s.imgPos === "below", hs = s.hs === "s" || s.hs === "l" ? " hs-" + s.hs : "";
     return '<article class="' + cls + " k-" + kind + hs + '"' + idAttr + ">" + (below ? "" : fig) + (s.head ? "<h3>" + esc(trunc(s.head, HEADMAX)) + "</h3>" : "") +
@@ -568,12 +604,14 @@
       '<label class="field">' + (box ? "Text" : "Story") + '<textarea data-f="body" rows="3" maxlength="' + LIMIT.lead + '">' + esc(s.body) + '</textarea><span class="count" data-count></span></label>' +
       (box ? "" : '<div class="imgrow"><label class="btn">' + (s.img ? "Change image" : "Add image") + '<input type="file" accept="image/*" data-act="file" class="sr"></label>' +
         (s.img ? '<img class="thumb" alt="" src="' + s.img + '"><button type="button" class="link" data-act="rmimg">Remove</button>' : "") + "</div>") +
+      (!box && s.img ? adjHTML(s) : "") +
       "<details><summary>More options</summary>" + moreFields(s) + "</details></div>";
   }
   function drawList() {
     var n = S.stories.length;
     var open = {}; document.querySelectorAll("#storyList details[open]").forEach(function (d) { open[d.closest(".card").getAttribute("data-id")] = true; });
     $("#storyList").innerHTML = n ? S.stories.map(function (s, i) { return cardHTML(s, i, n); }).join("") : '<p class="hint empty">No stories yet. Press "Add a story" to begin.</p>';
+    S.stories.forEach(function (s) { if (s.img) { var cd = document.querySelector('#storyList .card[data-id="' + s.id + '"]'); if (cd) drawAdjPreview(cd, s); } });
     document.querySelectorAll("#storyList .card").forEach(function (c) { if (open[c.getAttribute("data-id")]) c.querySelector("details").open = true; });
     $("#addStory").disabled = $("#addBox").disabled = n >= 24;
     render();
@@ -585,8 +623,13 @@
     var s = byId(card.getAttribute("data-id")), f = e.target.getAttribute("data-f"); if (!s || !f) return;
     if (f === "head") { var ct = card.querySelector(".card-title b"); if (ct) ct.textContent = e.target.value || "Untitled"; }
     s[f] = f === "zone" ? (e.target.value || null) : e.target.value;
+    if (/^img(Fit|Zoom|X|Y|H)$/.test(f)) {
+      var out = card.querySelector('[data-out="' + f + '"]'); if (out) out.textContent = e.target.value + "%";
+      drawAdjPreview(card, s); save(); clearTimeout(adjT); adjT = setTimeout(render, 180); return;
+    }
     save(); render();
   }
+  var adjT;
   list.addEventListener("input", onField);
   list.addEventListener("change", function (e) {
     if (e.target.getAttribute("data-act") === "file") {
@@ -604,6 +647,7 @@
     if (act === "toggle") { opened[s.id] = !opened[s.id]; drawList(); return; }
     if (act === "del") { S.stories.splice(i, 1); toast("Story removed.", function () { S.stories.splice(i, 0, s); save(); drawList(); }); }
     else if (act === "rmimg") s.img = null;
+    else if (act === "resetImg") { delete s.imgFit; delete s.imgZoom; delete s.imgX; delete s.imgY; delete s.imgH; }
     else if (act === "up" && i > 0) { S.stories.splice(i, 1); S.stories.splice(i - 1, 0, s); }
     else if (act === "down" && i < S.stories.length - 1) { S.stories.splice(i, 1); S.stories.splice(i + 1, 0, s); }
     else return;
@@ -700,6 +744,52 @@
   dlg.addEventListener("click", function (e) { if (e.target === dlg) closeDlg(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !dlg.hidden) closeDlg(); });
 
+  function insetShadow(x, w, h, blur, spread, color) {
+    var O = 5000;
+    x.save(); x.beginPath(); x.rect(0, 0, w, h); x.clip();
+    x.shadowColor = color; x.shadowBlur = blur; x.shadowOffsetX = O; x.fillStyle = "#000";
+    x.beginPath(); x.rect(-O - 800, -800, w + 1600, h + 1600); x.rect(spread - O, spread, w - 2 * spread, h - 2 * spread);
+    x.fill("evenodd"); x.restore();
+  }
+  function blotch(x, W, H, fx, fy, rx, ry, rgb, a) {
+    var g;
+    x.save(); x.translate(W * fx, H * fy); x.scale(1, ry / rx);
+    g = x.createRadialGradient(0, 0, 0, 0, 0, rx);
+    g.addColorStop(0, "rgba(" + rgb + "," + a + ")"); g.addColorStop(0.7, "rgba(" + rgb + ",0)");
+    x.fillStyle = g; x.fillRect(-rx, -rx, rx * 2, rx * 2); x.restore();
+  }
+  function foldLine(x, a, b, dark1, light, dark2, vertical, W, H) {
+    var g = vertical ? x.createLinearGradient(a, 0, b, 0) : x.createLinearGradient(0, a, 0, b), len = Math.abs(b - a);
+    g.addColorStop(0, "rgba(70,45,15,0)");
+    g.addColorStop(Math.abs(dark1.p - a) / len, dark1.c);
+    g.addColorStop(Math.abs(light.p - a) / len, light.c);
+    g.addColorStop(Math.abs(dark2.p - a) / len, dark2.c);
+    g.addColorStop(1, "rgba(70,45,15,0)");
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+  }
+  function composePaper(content) {
+    var W = paperEl.offsetWidth, H = paperEl.offsetHeight, k = content.width / W, cs = getComputedStyle(paperEl);
+    var pp = cs.getPropertyValue("--pp").trim(), tear = cs.getPropertyValue("--tear").trim();
+    var cv = document.createElement("canvas"); cv.width = content.width; cv.height = content.height;
+    var x = cv.getContext("2d");
+    x.fillStyle = pp; x.fillRect(0, 0, cv.width, cv.height);
+    insetShadow(x, cv.width, cv.height, 120 * k, 26 * k, tear);
+    insetShadow(x, cv.width, cv.height, 16 * k, 4 * k, "rgba(50,28,8,.55)");
+    x.drawImage(content, 0, 0);
+    x.save(); x.scale(k, k);
+    [0.66, 0.33].forEach(function (f) {
+      var yf = H * (1 - f);
+      foldLine(x, yf + 22, yf - 24, { p: yf + 1, c: "rgba(70,45,15,.08)" }, { p: yf, c: "rgba(255,245,215,.16)" }, { p: yf - 2, c: "rgba(70,45,15,.09)" }, false, W, H);
+    });
+    foldLine(x, W / 2 - 26, W / 2 + 30, { p: W / 2 - 2, c: "rgba(70,45,15,.10)" }, { p: W / 2, c: "rgba(255,245,215,.20)" }, { p: W / 2 + 3, c: "rgba(70,45,15,.12)" }, true, W, H);
+    blotch(x, W, H, 0.30, 0.82, 520, 340, "130,90,35", 0.22);
+    blotch(x, W, H, 0.88, 0.40, 460, 300, "120,80,30", 0.20);
+    blotch(x, W, H, 0.12, 0.18, 380, 260, "140,95,40", 0.22);
+    if (noiseTile) { x.fillStyle = x.createPattern(noiseTile, "repeat"); x.fillRect(0, 0, W, H); }
+    x.restore();
+    return cv;
+  }
+
   $("#btnExport").addEventListener("click", function () {
     var btn = $("#btnExport");
     if (!plan().publish) { showTab("rules"); return; }
@@ -711,8 +801,11 @@
         var ps = doc.getElementById("paperScale"); if (ps) ps.style.transform = "none";
         var h = doc.getElementById("holder"); if (h) { h.style.height = "auto"; h.style.overflow = "visible"; h.classList.remove("arrange"); }
         doc.querySelectorAll(".ph").forEach(function (n) { n.remove(); });
+        var pe = doc.getElementById("paper"); if (pe) { pe.style.boxShadow = "none"; pe.style.backgroundColor = "transparent"; }
+        var gr = doc.querySelector(".grain"); if (gr) gr.remove();
       }
-    }).then(function (canvas) {
+    }).then(function (content) {
+      var canvas = composePaper(content);
       var url = canvas.toDataURL("image/png");
       $("#dlgImg").src = url; $("#dlgDl").href = url; lastPng = url;
       $("#dlgDl").setAttribute("download", (S.m.title || "newspaper").replace(/[^\w]+/g, "-").toLowerCase() + ".png");
@@ -735,8 +828,18 @@
     S.m.style = p.s; S.layout = p.l; S.paper = p.p; S.look = p.i; $("#paperSel").value = p.p; $("#imgStyle").value = p.i;
     syncStyleButtons(); drawLayouts(); save(); drawList();
   });
-  $("#tips").hidden = !!S.tipsOff;
-  $("#tipsClose").onclick = function () { S.tipsOff = true; $("#tips").hidden = true; save(); };
+  var welcome = $("#welcome"), lastFocus = null;
+  function openWelcome() { lastFocus = document.activeElement; welcome.hidden = false; $("#welcomeGo").focus(); }
+  function closeWelcome() {
+    welcome.hidden = true;
+    if (!S.tipsOff) { S.tipsOff = true; save(); }
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $("#welcomeGo").addEventListener("click", closeWelcome);
+  welcome.addEventListener("click", function (e) { if (e.target === welcome) closeWelcome(); });
+  $("#btnHelp").addEventListener("click", openWelcome);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !welcome.hidden) closeWelcome(); });
+  if (!S.tipsOff) openWelcome();
 
   var lastPng = "";
   function slug() { return (S.m.title || "newspaper").replace(/[^\w]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "newspaper"; }

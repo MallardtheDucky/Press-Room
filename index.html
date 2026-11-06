@@ -14,9 +14,9 @@
 <header class="top">
   <h1>Press Room</h1>
   <p>Make your own front page in four steps. Everything updates live.</p>
+  <button type="button" class="btn help-btn" id="btnHelp">Help</button>
 </header>
 
-<div class="tips" id="tips"><b>New here?</b> <span>1. Set your <b>Title</b></span> <span>2. Add your <b>Stories</b></span> <span>3. Pick a look in <b>Design</b></span> <span>4. Press <b>Move stories</b> to drag things around, then <b>Download image</b>.</span> <button type="button" class="link" id="tipsClose">Got it</button></div>
 <main class="app">
   <section class="panel" aria-label="Editor">
     <div class="tabs" role="tablist" aria-label="Editor sections">
@@ -197,6 +197,14 @@
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="ghost" class="ghost" hidden></div>
 
+<div id="welcome" class="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+  <div class="dlg-box welcome-box">
+    <h2 id="welcomeTitle">Welcome to Press Room</h2>
+    <p class="hint">Make your own newspaper front page in four steps.</p>
+    <ol><li>Set your <b>Title</b>.</li><li>Add your <b>Stories</b>, with pictures if you like.</li><li>Pick a look in <b>Design</b>, or press <b>Random paper</b>.</li><li>Press <b>Move stories</b> to drag things around, then <b>Download image</b>.</li></ol>
+    <button type="button" class="btn primary" id="welcomeGo">Start making a paper</button>
+  </div>
+</div>
 <div id="dlg" class="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
   <div class="dlg-box">
     <div class="dlg-head">

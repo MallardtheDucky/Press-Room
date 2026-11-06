@@ -186,7 +186,7 @@ textarea{resize:vertical;line-height:1.4}
 .bar span{white-space:nowrap}
 
 .rows{margin:0 auto}
-.rowgrid{display:grid;align-items:start}
+.rowgrid{display:grid;align-items:stretch}
 .rowgrid+.rowgrid{margin-top:var(--rgap,16px);padding-top:calc(var(--rgap,16px) - 2px);border-top:3px double var(--ink2)}
 .zone{min-width:0;padding:0 var(--cpad,15px);border-left:1.5px solid var(--ink2)}
 .rowgrid>.zone:first-child{border-left:0;padding-left:0}
@@ -258,7 +258,6 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0}
 .sty-banner .rib::before{left:-14px;clip-path:polygon(0 0,100% 0,100% 100%,0 100%,32% 50%)}
 .sty-banner .rib::after{right:-14px;clip-path:polygon(0 0,100% 0,68% 50%,100% 100%,0 100%)}
 
-.tips{max-width:1500px;margin:0 auto 14px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;font-size:14px;display:flex;gap:6px 16px;flex-wrap:wrap;align-items:center}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:6px;z-index:90;display:flex;gap:12px;align-items:center;box-shadow:0 4px 14px var(--shade);max-width:92vw}
 .toast .link{color:var(--bg);font-weight:600}
 .card-title{flex:1;min-width:0;display:flex;gap:8px;align-items:center;background:none;border:0;cursor:pointer;text-align:left;padding:2px 0}
@@ -283,8 +282,7 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0}
   .app{gap:14px}
   .stage{display:flex;flex-direction:column}
   .stage .bar{order:2;margin:12px 0 0}
-  .tips{margin-bottom:10px}
-  .zoom-btn{display:inline-flex}
+.zoom-btn{display:inline-flex}
   .bar{flex-direction:column;align-items:stretch}
   .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
   #btnExport,#btnZoom,#btnRandom{grid-column:1 / -1}
@@ -295,7 +293,13 @@ input[type=range]{width:100%;accent-color:var(--accent);padding:0}
   .card-top{min-height:52px}
   .card .tools .btn{min-height:40px;min-width:40px}
   .panel{padding:12px}
-  .tips{font-size:13px;padding:8px 12px}
   .lay{padding:10px}
   .dlg{padding:8px}
 }
+
+.help-btn{margin-left:auto;align-self:center}
+.welcome-box{max-width:460px}
+.welcome-box ol{margin:10px 0 18px;padding-left:22px}
+.welcome-box li{margin:7px 0}
+.adj{display:grid;gap:10px;padding:10px;margin:8px 0;border:1px solid var(--line);border-radius:6px;background:var(--field)}
+.adj-prev{width:auto;max-width:100%;max-height:200px;margin:0 auto;border:1px solid var(--line);border-radius:4px;background:#ece2c8;display:block}
