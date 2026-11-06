@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Press Room</title>
+<link rel="stylesheet" href="style.css">
+</head><body>
+<header class="top">
+  <h1>Press Room</h1>
+  <p>Make your own front page in four steps. Everything updates live.</p>
+</header>
+
+<div class="tips" id="tips"><b>New here?</b> <span>1. Set your <b>Title</b></span> <span>2. Add your <b>Stories</b></span> <span>3. Pick a look in <b>Design</b></span> <span>4. Press <b>Move stories</b> to drag things around, then <b>Download image</b>.</span> <button type="button" class="link" id="tipsClose">Got it</button></div>
+<main class="app">
+  <section class="panel" aria-label="Editor">
+    <div class="tabs" role="tablist" aria-label="Editor sections">
+      <button class="tab" role="tab" id="t-masthead" aria-controls="tab-masthead" aria-selected="true">Title</button>
+      <button class="tab" role="tab" id="t-stories" aria-controls="tab-stories" aria-selected="false">Stories</button>
+      <button class="tab" role="tab" id="t-layout" aria-controls="tab-layout" aria-selected="false">Design</button>
+      <button class="tab" role="tab" id="t-rules" aria-controls="tab-rules" aria-selected="false">Samples</button>
+    </div>
+
+    <div class="tabpanel" id="tab-masthead" role="tabpanel" aria-labelledby="t-masthead">
+      <label class="field">Newspaper title
+        <input id="mTitle" maxlength="40" autocomplete="off">
+      </label>
+      <label class="field">Line under the title <span class="opt">optional</span>
+        <input id="mTag" maxlength="70" autocomplete="off">
+      </label>
+      <label class="field">Date line
+        <input id="mDate" maxlength="48" autocomplete="off">
+      </label>
+      <div class="row2">
+        <label class="field">Volume <span class="opt">left</span>
+          <input id="mVol" maxlength="24" autocomplete="off">
+        </label>
+        <label class="field">Motto <span class="opt">centre</span>
+          <input id="mMotto" maxlength="70" autocomplete="off">
+        </label>
+      </div>
+
+      <fieldset class="field">
+        <legend>Title style</legend>
+        <div class="styles" id="styleGrid" role="radiogroup" aria-label="Title style">
+          <button type="button" role="radio" data-style="chron" class="sty sty-chron">The Chronicle</button>
+          <button type="button" role="radio" data-style="banner" class="sty sty-banner"><span class="rib">Ribbon</span></button>
+          <button type="button" role="radio" data-style="gothic" class="sty sty-gothic">Gothic</button>
+          <button type="button" role="radio" data-style="classic" class="sty sty-classic">Classic</button>
+        </div>
+      </fieldset>
+
+      <label class="field">Boxes beside the title
+        <select id="mSide">
+          <option value="ears">Two text boxes</option>
+          <option value="crest">Crest image</option>
+          <option value="none">None</option>
+        </select>
+      </label>
+      <div id="earBox" class="rule-box">
+        <span class="lab">Left box</span>
+        <div class="row3">
+          <input id="eLl" maxlength="22" placeholder="Label" aria-label="Left box label" autocomplete="off">
+          <input id="eLb" maxlength="18" placeholder="Big text" aria-label="Left box big text" autocomplete="off">
+          <input id="eLs" maxlength="70" placeholder="Small text" aria-label="Left box small text" autocomplete="off">
+        </div>
+        <span class="lab">Right box</span>
+        <div class="row3">
+          <input id="eRl" maxlength="22" placeholder="Label" aria-label="Right box label" autocomplete="off">
+          <input id="eRb" maxlength="18" placeholder="Big text" aria-label="Right box big text" autocomplete="off">
+          <input id="eRs" maxlength="70" placeholder="Small text" aria-label="Right box small text" autocomplete="off">
+        </div>
+      </div>
+      <div id="crestBox" class="field" hidden>
+        <span class="lab">Crest image <span class="opt">shown on both sides</span></span>
+        <div class="imgrow">
+          <label class="btn" for="crestFile">Choose image</label>
+          <input id="crestFile" type="file" accept="image/*" class="sr">
+          <img id="crestThumb" class="thumb" alt="" hidden>
+          <button type="button" class="link" id="crestRm" hidden>Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabpanel" id="tab-stories" role="tabpanel" aria-labelledby="t-stories" hidden>
+      <div class="slots" id="meter" aria-live="polite"></div>
+      <p class="hint">Click a story to open it. Stories fill the page from the top of the list. Use "Place in" to pick a spot, or press "Move stories" above the page and drag.</p>
+      <div id="storyList"></div>
+      <div class="row2">
+        <button type="button" class="btn" id="addStory">Add a story</button>
+        <button type="button" class="btn" id="addBox">Add a box</button>
+      </div>
+      <div class="row2"><button type="button" class="btn" id="clearAll">Clear all</button><button type="button" class="btn" id="resetSample">Load example</button></div>
+      <p class="hint">A box is an advert or notice with a frame. Write lines as <b>Label | Value</b> to make a price list.</p>
+    </div>
+
+    <div class="tabpanel" id="tab-layout" role="tabpanel" aria-labelledby="t-layout" hidden>
+      <div class="field"><span class="lab">Quick looks <span class="opt">one click, then fine-tune below</span></span>
+        <div class="presets" id="presets"><button type="button" class="btn" data-p="victorian">Victorian</button><button type="button" class="btn" data-p="modern">Clean modern</button><button type="button" class="btn" data-p="dark">Old and dark</button><button type="button" class="btn" data-p="tabloid">Bold ribbon</button></div></div>
+      <fieldset class="field">
+        <legend>Page layout</legend>
+        <div class="lays" id="layGrid" role="radiogroup" aria-label="Page layout"></div>
+      </fieldset>
+      <p class="hint">Switching layout keeps your stories. Anything placed in a spot the new layout does not have goes back to Auto.</p>
+      <div class="row2">
+        <label class="field">Paper
+          <select id="paperSel">
+            <option value="aged">Aged tan</option>
+            <option value="clean">Clean cream</option>
+            <option value="news">Grey newsprint</option>
+            <option value="dark">Dark parchment</option>
+          </select>
+        </label>
+        <label class="field">Image look
+          <select id="imgStyle">
+            <option value="pencil">Pencil drawing</option>
+            <option value="photo">Early photograph</option>
+            <option value="original">Original</option>
+          </select>
+        </label>
+      </div>
+      <div class="row2">
+        <label class="field">Spacing
+          <select id="spaceSel"><option value="tight">Tight</option><option value="normal">Normal</option><option value="roomy">Roomy</option></select>
+        </label>
+        <label class="field">Text size
+          <select id="fsizeSel"><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option></select>
+        </label>
+      </div>
+      <div class="row2">
+        <label class="field">Column lines
+          <select id="rulesSel"><option value="line">Single line</option><option value="double">Double line</option><option value="none">None</option></select>
+        </label>
+        <label class="field">Picture frame
+          <select id="pframeSel"><option value="double">Double line</option><option value="single">Single line</option><option value="none">None</option></select>
+        </label>
+      </div>
+      <label class="field">Side column width <span class="opt" id="sideWVal"></span>
+        <input id="sideW" type="range" min="70" max="140" step="5">
+      </label>
+      <label class="check"><input type="checkbox" id="flip"> Mirror the layout (swap left and right)</label>
+      <label class="check"><input type="checkbox" id="dropcap"> Drop capitals on longer stories</label>
+      <p class="hint">The image look applies to every picture, including the crest.</p>
+    </div>
+
+    <div class="tabpanel" id="tab-rules" role="tabpanel" aria-labelledby="t-rules" hidden>
+      <div class="rule-box">
+        <div class="row2">
+          <label class="field">Minimum stories
+            <input id="minStories" type="number" min="1" max="12" step="1">
+          </label>
+          <label class="field">Most filler allowed
+            <input id="maxFiller" type="number" min="0" max="11" step="1">
+          </label>
+        </div>
+        <label class="check"><input type="checkbox" id="useFiller"> Fill empty spots with filler stories</label>
+        <p class="hint">After your stories are placed, empty spots in the layout are filled with random filler. If real and filler stories together are still under the minimum, that edition is skipped.</p>
+      </div>
+
+      <div class="rule-box">
+        <label class="check"><input type="checkbox" id="useBuiltin"> Use the built-in filler bank <span class="opt" id="builtinCount"></span></label>
+        <label class="field">Your own filler
+          <textarea id="customFiller" rows="5" spellcheck="false" placeholder="Headline | Short text&#10;Lost: One Umbrella | Left at the tram stop on Monday."></textarea>
+        </label>
+        <p class="hint">One story per line, headline and text split by a bar. Built-in stories live in filler.js.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="stage" aria-label="Preview">
+    <div class="bar">
+      <span id="status" class="chip" role="status"></span>
+      <div class="actions">
+        <button type="button" class="btn" id="btnArrange" aria-pressed="false" title="Drag stories between spots on the page">Move stories</button>
+        <button type="button" class="btn" id="btnCycle" title="Draw different filler stories">Shuffle samples</button>
+        <button type="button" class="btn" id="btnSave" title="Save everything to a file on your computer">Save project</button>
+        <label class="btn" for="projFile" title="Open a project file you saved before">Open project</label>
+        <input id="projFile" type="file" accept=".json,application/json" class="sr">
+        <button type="button" class="btn primary" id="btnExport">Download image</button>
+      </div>
+    </div>
+    <p class="arrange-note" id="arrangeNote" hidden>Drag any of your stories to another dashed area. Filler stories cannot be moved.</p>
+    <div id="skipped" class="skipped" hidden></div>
+    <div id="holder" class="holder">
+      <div id="paperScale" class="paper-scale"><div id="paper" class="paper" data-paper="aged"></div></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" role="status" hidden></div>
+<div id="ghost" class="ghost" hidden></div>
+
+<div id="dlg" class="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dlg-box">
+    <div class="dlg-head">
+      <h2 id="dlgTitle">Your front page</h2>
+      <button type="button" class="btn" id="dlgClose">Close</button>
+    </div>
+    <p class="hint" id="dlgNote">Right-click the image and choose Save, or press and hold on a phone.</p>
+    <div class="dlg-img"><img id="dlgImg" alt="Exported newspaper front page"></div>
+    <a id="dlgDl" class="btn primary" download="newspaper.png" href="#">Download PNG</a>
+  </div>
+</div>
+<script src="vendor/html2canvas.min.js"></script>
+<script src="filler.js"></script>
+<script src="app.js"></script>
+</body></html>
