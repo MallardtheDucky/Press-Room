@@ -124,7 +124,41 @@
     }
   } catch (e) {  }
 
-  if (S.look === "engrave") S.look = "pencil";
+  function clean(X) {
+    var d = defaults(), k;
+    if (!X || typeof X !== "object") X = d;
+    Object.keys(d).forEach(function (key) { if (X[key] === undefined || X[key] === null) X[key] = d[key]; });
+    if (typeof X.m !== "object") X.m = d.m;
+    Object.keys(d.m).forEach(function (key) { if (X.m[key] === undefined) X.m[key] = d.m[key]; });
+    ["eL", "eR"].forEach(function (e) { if (!X.m[e] || typeof X.m[e] !== "object") X.m[e] = d.m[e]; ["l", "b", "s"].forEach(function (f) { if (typeof X.m[e][f] !== "string") X.m[e][f] = ""; }); });
+    ["title", "tag", "date", "vol", "motto"].forEach(function (f) { if (typeof X.m[f] !== "string") X.m[f] = d.m[f]; });
+    if (["chron", "banner", "gothic", "classic"].indexOf(X.m.style) < 0) X.m.style = "chron";
+    if (["ears", "crest", "none"].indexOf(X.m.side) < 0) X.m.side = "ears";
+    if (X.look === "engrave") X.look = "pencil";
+    if (["pencil", "photo", "original"].indexOf(X.look) < 0) X.look = "pencil";
+    if (!LAYOUTS[X.layout]) X.layout = "chronicle";
+    if (["aged", "clean", "news", "dark"].indexOf(X.paper) < 0) X.paper = "aged";
+    if (!SPACE[X.space]) X.space = "normal";
+    if (!FSIZE[X.fsize]) X.fsize = "normal";
+    if (["line", "double", "none"].indexOf(X.rules) < 0) X.rules = "line";
+    if (["double", "single", "none"].indexOf(X.pframe) < 0) X.pframe = "double";
+    ["min", "maxFiller", "seed", "sideW"].forEach(function (f) { X[f] = Number(X[f]); if (!isFinite(X[f])) X[f] = d[f]; });
+    if (typeof X.custom !== "string") X.custom = "";
+    if (!Array.isArray(X.stories)) X.stories = [];
+    var seen = {};
+    X.stories = X.stories.filter(function (st) { return st && typeof st === "object"; }).map(function (st) {
+      var o = Object.assign(story({}), st);
+      ["head", "body", "deck", "dateline", "caption", "label", "foot"].forEach(function (f) { if (typeof o[f] !== "string") o[f] = o[f] == null ? "" : String(o[f]); });
+      if (o.type !== "box") o.type = "story";
+      if (!o.id || seen[o.id]) o.id = nid();
+      seen[o.id] = true;
+      if (o.zone && !LAYOUTS[X.layout].zones[o.zone]) o.zone = null;
+      if (!o.frame) o.frame = "double";
+      return o;
+    });
+    return X;
+  }
+  S = clean(S);
 
   var opened = {}; if (S.stories[0]) opened[S.stories[0].id] = true;
 
@@ -430,6 +464,12 @@
   }
 
   function render() {
+    try { renderInner(); } catch (err) {
+      if (window.console) console.error(err);
+      try { var st = $("#status"); st.className = "chip skip"; st.textContent = "Could not draw the page: " + (err && err.message ? err.message : err); } catch (e2) { }
+    }
+  }
+  function renderInner() {
     if (drag && drag.on) { renderLater = true; return; }
     var res = plan(), lay = L();
     updateStatus(res); updateMeter(res); updateCounts(res);
@@ -473,7 +513,7 @@
     holder.style.height = Math.ceil(paperEl.offsetHeight * s) + "px";
   }
   window.addEventListener("resize", fitScale);
-  if (window.ResizeObserver) new ResizeObserver(fitScale).observe(holder);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(fitScale); ro.observe(holder); ro.observe(paperEl); }
 
   function updateStatus(r) {
     var el = $("#status");
@@ -871,7 +911,7 @@
     Object.keys(v).forEach(function (k) { $(k).value = v[k]; });
     $("#sideWVal").textContent = S.sideW + "%";
     [["#useFiller", "useFiller"], ["#useBuiltin", "builtin"], ["#dropcap", "dropcap"], ["#flip", "flip"]].forEach(function (c) { $(c[0]).checked = !!S[c[1]]; });
-    syncStyleButtons(); syncSide(); drawLayouts(); opened = {}; if (S.stories[0]) opened[S.stories[0].id] = true; drawList();
+    syncStyleButtons(); syncSide(); drawLayouts(); opened = {}; if (S.stories[0]) opened[S.stories[0].id] = true; drawList(); render();
   }
   $("#projFile").addEventListener("change", function (e) {
     var f = e.target.files[0]; e.target.value = ""; if (!f) return;
@@ -883,8 +923,7 @@
         if (!p || !p.m || !Array.isArray(p.stories)) throw new Error("bad");
         var old = S, d = defaults();
         S = Object.assign(d, p, { m: Object.assign(d.m, p.m, { eL: Object.assign(d.m.eL, p.m.eL), eR: Object.assign(d.m.eR, p.m.eR) }) });
-        S.stories = S.stories.map(function (s) { return Object.assign(story({}), s); });
-        if (S.look === "engrave") S.look = "pencil";
+        S = clean(S);
         syncAll(); save(); toast("Project opened.", function () { S = old; syncAll(); save(); });
       } catch (err) { toast("That file is not a Press Room project."); }
     };
@@ -938,9 +977,15 @@
   });
 
   drawList();
-  if (document.fonts && document.fonts.load) {
-    Promise.all(['64px "Abril Fatface"', '46px "Rye"', '78px "UnifrakturCook"', '700 52px "Old Standard TT"', '400 13px "Old Standard TT"', 'italic 13px "IM Fell English"', '12px "IM Fell English SC"', '700 10px "Cinzel"', '900 18px "Playfair Display"'].map(function (f) { return document.fonts.load(f); }))
-      .then(function () { return document.fonts.ready; }).then(render, render);
-  }
+  render();
+  try {
+    if (document.fonts && document.fonts.load) {
+      var fl = Promise.all(['64px "Abril Fatface"', '46px "Rye"', '78px "UnifrakturCook"', '700 52px "Old Standard TT"', '400 13px "Old Standard TT"', 'italic 13px "IM Fell English"', '12px "IM Fell English SC"', '700 10px "Cinzel"', '900 18px "Playfair Display"'].map(function (f) { return document.fonts.load(f).catch(function () { return null; }); }));
+      fl.then(function () { render(); }, function () { render(); });
+      if (document.fonts.ready) document.fonts.ready.then(function () { render(); }, function () { });
+      setTimeout(render, 1500);
+    }
+  } catch (e) { render(); }
+  window.addEventListener("load", function () { render(); });
   window.__pressroom = { plan: plan, state: function () { return S; } };
 })();
